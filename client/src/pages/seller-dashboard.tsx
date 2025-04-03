@@ -203,14 +203,15 @@ export default function SellerDashboard() {
       const res = await apiRequest("POST", "/api/products", data);
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Product Added",
         description: "Your product has been added successfully!",
       });
       productForm.reset();
       setIsAddingProduct(false);
-      queryClient.invalidateQueries({queryKey: ["/api/products/store", store?.store_id]});
+      await queryClient.invalidateQueries({queryKey: ["/api/products/store", store?.store_id]});
+      window.location.reload();
     },
     onError: (error: Error) => {
       toast({
@@ -223,17 +224,23 @@ export default function SellerDashboard() {
 
   // Update product mutation
   const updateProductMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number, data: ProductFormValues }) => {
+    mutationFn: async ({ id, data }: { id: string; data: ProductFormValues }) => {
+      console.log('Updating product:', { id, data });
       const res = await apiRequest("PUT", `/api/products/${id}`, data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to update product');
+      }
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Product Updated",
         description: "Product has been updated successfully!",
       });
       setEditingProduct(null);
-      queryClient.invalidateQueries({queryKey: ["/api/products/store", store?.store_id]});
+      await queryClient.invalidateQueries({queryKey: ["/api/products/store", store?.store_id]});
+      window.location.reload();
     },
     onError: (error: Error) => {
       toast({
@@ -250,12 +257,13 @@ export default function SellerDashboard() {
       const res = await apiRequest("DELETE", `/api/products/${productId}`);
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Product Deleted",
         description: "Product has been deleted successfully!",
       });
-      queryClient.invalidateQueries({queryKey: ["/api/products/store", store?.store_id]});
+      await queryClient.invalidateQueries({queryKey: ["/api/products/store", store?.store_id]});
+      window.location.reload();
     },
     onError: (error: Error) => {
       toast({
@@ -271,7 +279,7 @@ export default function SellerDashboard() {
     mutationFn: async (formData: FormData) => {
       if (!store) throw new Error("Store not found");
 
-      const res = await fetch(`/api/products/csv-upload/${store.store_id}`, {
+      const res = await fetch(`/api/products/csv-upload/${store._id}`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -305,7 +313,7 @@ export default function SellerDashboard() {
   // Handler for product form submission
   const onSubmitProduct = (data: ProductFormValues) => {
     if (editingProduct) {
-      updateProductMutation.mutate({ id: editingProduct.id, data });
+      updateProductMutation.mutate({ id: editingProduct._id, data });
     } else {
       createProductMutation.mutate(data);
     }
@@ -333,8 +341,9 @@ export default function SellerDashboard() {
         description: "Your store has been created successfully!",
       });
 
-      // Redirect to products tab
-      setLocation("/seller?tab=products");
+      // Invalidate store query and redirect
+      await queryClient.invalidateQueries({queryKey: ["/api/store/seller"]});
+      window.location.href = "/seller?tab=products";
     } catch (err: any) {
       toast({
         title: "Store creation failed",
@@ -532,14 +541,14 @@ export default function SellerDashboard() {
                   <div className="space-y-4">
                     {Array.from(
                       new Set(products.map((p) => p.category || "Uncategorized"))
-                    ).map((category) => {
+                    ).map((category, index) => {
                       const count = products.filter(
                         (p) => (p.category || "Uncategorized") === category
                       ).length;
                       const percentage = Math.round((count / products.length) * 100);
 
                       return (
-                        <div key={category} className="space-y-1">
+                        <div key={`category-${category}-${index}`} className="space-y-1">
                           <div className="flex justify-between text-sm">
                             <span>{category}</span>
                             <span className="text-muted-foreground">{count} products ({percentage}%)</span>
@@ -649,7 +658,7 @@ export default function SellerDashboard() {
                                   </DialogClose>
                                   <Button
                                     variant="destructive"
-                                    onClick={() => deleteProductMutation.mutate(product.id)}
+                                    onClick={() => deleteProductMutation.mutate(product._id)}
                                     disabled={deleteProductMutation.isPending}
                                   >
                                     {deleteProductMutation.isPending ? "Deleting..." : "Delete"}

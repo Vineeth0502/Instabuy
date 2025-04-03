@@ -9,6 +9,7 @@ import { storage } from "./storage";
 import { User, updateProfileSchema } from "@shared/schema";
 import { registerStoreRoutes } from "./controllers/store";
 import { registerProductRoutes } from "./controllers/product";
+import { registerCsvUploadRoutes } from "./controllers/csv-upload";
 
 // Extend Express Request to include User
 declare global {
@@ -231,6 +232,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Product routes
   registerProductRoutes(apiRouter, storage);
+
+  // CSV Upload routes
+  registerCsvUploadRoutes(apiRouter, storage);
   
   // Mount all routes under /api
   app.use("/api", apiRouter);

@@ -285,11 +285,14 @@ export class MongoStorage implements IStorage {
   // Product operations
   async getProduct(id: string): Promise<Product | undefined> {
     try {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new Error('Invalid ObjectId format');
+      }
       const product = await ProductModel.findById(id);
       return product ? product.toObject() : undefined;
     } catch (error) {
       console.error('Error retrieving product:', error);
-      return undefined;
+      throw error; // Let the controller handle the error
     }
   }
 
@@ -413,25 +416,39 @@ export class MongoStorage implements IStorage {
     }
   }
 
-  async updateProduct(id: number, productData: Partial<InsertProduct>): Promise<Product | undefined> {
+  async updateProduct(id: string, productData: Partial<InsertProduct>): Promise<Product | undefined> {
     try {
-      const updatedProduct = await ProductModel.findOneAndUpdate(
-        { id },
-        { $set: productData },
+      console.log('=== MongoStorage.updateProduct ===');
+      console.log('Product ID:', id);
+      console.log('Update data:', productData);
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        console.error('Invalid ObjectId format:', id);
+        throw new Error('Invalid ObjectId format');
+      }
+
+      // Remove any attempts to update the _id
+      const { _id, ...updateData } = productData;
+
+      const updatedProduct = await ProductModel.findByIdAndUpdate(
+        new mongoose.Types.ObjectId(id),
+        { $set: updateData },
         { new: true }
       );
+
+      console.log('Updated product:', updatedProduct);
 
       return updatedProduct ? updatedProduct.toObject() : undefined;
     } catch (error) {
       console.error('Error updating product:', error);
-      return undefined;
+      throw error; // Let the controller handle the error
     }
   }
 
-  async deleteProduct(id: number): Promise<boolean> {
+  async deleteProduct(id: string): Promise<boolean> {
     try {
-      const result = await ProductModel.deleteOne({ id });
-      return result.deletedCount > 0;
+      const result = await ProductModel.findByIdAndDelete(id);
+      return !!result;
     } catch (error) {
       console.error('Error deleting product:', error);
       return false;

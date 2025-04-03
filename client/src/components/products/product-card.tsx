@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Product } from "@/shared/schema";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Heart } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/hooks/use-cart";
+import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
@@ -74,13 +77,33 @@ const ProductCard = ({ product, storeName, showStoreName = false }: ProductCardP
           {getStockStatusDisplay()}
         </div>
         <div className="mt-4">
-          <Button 
-            className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-            disabled={product.stock <= 0}
-          >
-            <ShoppingCart className="w-5 h-5 mr-2" />
-            Add to Cart
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              className="flex-1 inline-flex justify-center items-center"
+              disabled={product.stock <= 0}
+              onClick={() => {
+                useCart.getState().addItem(product);
+                toast({
+                  title: "Added to cart",
+                  description: `${product.name} has been added to your cart`,
+                });
+              }}
+            >
+              <ShoppingCart className="w-5 h-5 mr-2" />
+              Add to Cart
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => toggleFavorite(product.id)}
+              className={cn(
+                "hover:text-red-500",
+                isFavorite(product.id) && "text-red-500"
+              )}
+            >
+              <Heart className="w-5 h-5" fill={isFavorite(product.id) ? "currentColor" : "none"} />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

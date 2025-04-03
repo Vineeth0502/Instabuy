@@ -75,15 +75,17 @@ export const insertProductSchema = z.object({
   storeId: z.string()
 });
 
-export const insertProductsFromCsvSchema = z.array(z.object({
-  name: z.string(),
-  description: z.string().optional(),
-  price: z.string(),
-  category: z.string().optional(),
-  sku: z.string().optional(),
-  stock: z.number().or(z.string().transform(Number)).default(0),
-  image: z.string().optional(),
-}));
+export const insertProductsFromCsvSchema = z.array(
+  z.object({
+    name: z.string(),
+    description: z.string().optional(),
+    price: z.number(),
+    category: z.string().optional(),
+    sku: z.string().optional(),
+    stock: z.number().or(z.string().transform(Number)).default(0),
+    image: z.string().optional(),
+  }),
+);
 
 // Define types
 export type User = typeof users.$inferSelect;

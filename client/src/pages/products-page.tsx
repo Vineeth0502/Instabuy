@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
 import { Link } from "wouter";
+import { useCart } from "@/hooks/use-cart";
+import { useToast } from "@/hooks/use-toast";
 import {
   Card,
   CardContent,
@@ -14,6 +16,9 @@ import { Badge } from "@/components/ui/badge";
 import { Package, ShoppingCart, Tag, Layers } from "lucide-react";
 
 export default function ProductsPage() {
+  const { toast } = useToast(); 
+  const { addItem } = useCart(); 
+
   const { data: products, isLoading, error } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
@@ -67,7 +72,7 @@ export default function ProductsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {products.map((product) => (
                 <Card 
-                  key={product.id} 
+                  key={product._id} 
                   className="h-full flex flex-col overflow-hidden hover:shadow-md transition-all"
                 >
                   <div className="h-48 relative bg-muted overflow-hidden">
@@ -109,10 +114,20 @@ export default function ProductsPage() {
                     </div>
                   </CardContent>
                   <CardFooter className="pt-2 border-t">
-                    <Button className="w-full" size="sm">
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Add to Cart
-                    </Button>
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    onClick={() => {
+                      addItem(product); // ✅ Proper closure
+                      toast({
+                        title: "Added to cart",
+                        description: `${product.name} has been added to your cart`,
+                      });
+                    }}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Add to Cart
+                  </Button>
                   </CardFooter>
                 </Card>
               ))}

@@ -17,11 +17,39 @@ const CSVUploadModal = ({ isOpen, onClose, storeId }: CSVUploadModalProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const uploadCSV = useMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await apiRequest("POST", "/api/products/upload", formData);
-      return response.json();
+      try {
+        if (!storeId) {
+          throw new Error('Store ID is required');
+        }
+        console.log('Uploading CSV for store:', storeId);
+        const response = await fetch(`/api/products/csv-upload/${storeId}`, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        const contentType = response.headers.get("content-type");
+        if (!response.ok) {
+          if (contentType && contentType.indexOf("application/json") !== -1) {
+            const error = await response.json();
+            throw new Error(error.message);
+          } else {
+            const text = await response.text();
+            throw new Error('Failed to upload CSV: ' + text);
+          }
+        }
+        
+        return response.json();
+      } catch (error) {
+        console.error('CSV upload error:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       toast({
@@ -72,7 +100,7 @@ const CSVUploadModal = ({ isOpen, onClose, storeId }: CSVUploadModalProps) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFile = e.dataTransfer.files[0];
       if (droppedFile.type === "text/csv" || droppedFile.name.endsWith('.csv')) {
@@ -88,20 +116,39 @@ const CSVUploadModal = ({ isOpen, onClose, storeId }: CSVUploadModalProps) => {
   };
 
   const handleUpload = async () => {
-    if (!file) {
+    try {
+      if (!file) {
+        toast({
+          title: "No file selected",
+          description: "Please select a CSV file to upload",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!storeId) {
+        toast({
+          title: "Store Error",
+          description: "No store selected for upload",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("csvFile", file);
+      console.log('Uploading file:', file.name, 'for store:', storeId);
+      
+      await uploadCSV.mutateAsync(formData);
+      queryClient.invalidateQueries({ queryKey: [`/api/products/store/${storeId}`] });
+    } catch (error) {
+      console.error('Upload error:', error);
       toast({
-        title: "No file selected",
-        description: "Please select a CSV file to upload",
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload CSV file",
         variant: "destructive",
       });
-      return;
     }
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("storeId", storeId.toString());
-    
-    await uploadCSV.mutateAsync(formData);
   };
 
   const handleBrowseClick = () => {
@@ -120,7 +167,7 @@ const CSVUploadModal = ({ isOpen, onClose, storeId }: CSVUploadModalProps) => {
         ></div>
 
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        
+
         <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
           <div>
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary">
@@ -137,7 +184,7 @@ const CSVUploadModal = ({ isOpen, onClose, storeId }: CSVUploadModalProps) => {
               </div>
             </div>
           </div>
-          
+
           <div className="mt-5 sm:mt-6">
             <label className="block text-sm font-medium text-gray-700">CSV File</label>
             <div 
@@ -192,7 +239,7 @@ const CSVUploadModal = ({ isOpen, onClose, storeId }: CSVUploadModalProps) => {
               </div>
             </div>
           </div>
-          
+
           <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
             <Button
               type="button"

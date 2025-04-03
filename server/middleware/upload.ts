@@ -41,14 +41,14 @@ export const csvUpload = multer({
     fileSize: 10 * 1024 * 1024,
   },
   fileFilter: (_req, file, cb) => {
-    const filetypes = /csv/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const allowedExtensions = [".csv"];
+    const extname = allowedExtensions.includes(path.extname(file.originalname).toLowerCase());
 
-    if (mimetype && extname) {
-      return cb(null, true);
+    if (extname) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only CSV files are allowed"));
     }
-
-    cb(new Error("Only CSV files are allowed"));
   },
 });
+

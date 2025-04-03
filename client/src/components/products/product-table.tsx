@@ -24,15 +24,26 @@ const ProductTable = ({ products }: ProductTableProps) => {
   const [deleteProductId, setDeleteProductId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // Delete product mutation
   const updateProduct = useMutation({
-    mutationFn: async (data: {id: number, updates: any}) => {
-      const response = await apiRequest("PUT", `/api/products/${data.id}`, data.updates);
+    mutationFn: async (data: {id: string, updates: any}) => {
+      const response = await fetch(`/api/products/${data.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data.updates),
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update product');
+      }
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/products/mine'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products/store'] });
       toast({
         title: "Success",
         description: "Product updated successfully",
@@ -48,8 +59,15 @@ const ProductTable = ({ products }: ProductTableProps) => {
   });
 
   const deleteProduct = useMutation({
-    mutationFn: async (productId: number) => {
-      const response = await apiRequest("DELETE", `/api/products/${productId}`, undefined);
+    mutationFn: async (productId: string) => {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete product');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -57,7 +75,7 @@ const ProductTable = ({ products }: ProductTableProps) => {
         title: "Product deleted",
         description: "The product has been successfully deleted.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/products/mine'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products/store'] });
     },
     onError: (error: Error) => {
       toast({
@@ -68,14 +86,18 @@ const ProductTable = ({ products }: ProductTableProps) => {
     },
   });
 
-  const handleDeleteClick = (productId: number) => {
+  const handleDeleteClick = (productId: string) => {
     setDeleteProductId(productId);
   };
 
   const confirmDelete = async () => {
     if (deleteProductId) {
-      await deleteProduct.mutateAsync(deleteProductId);
-      setDeleteProductId(null);
+      try {
+        await deleteProduct.mutateAsync(deleteProductId);
+        setDeleteProductId(null);
+      } catch (error) {
+        console.error('Error deleting product:', error);
+      }
     }
   };
 
@@ -88,12 +110,26 @@ const ProductTable = ({ products }: ProductTableProps) => {
     if (price.startsWith('$')) {
       return price;
     }
-    
+
     const numPrice = parseFloat(price);
     if (isNaN(numPrice)) return price;
-    
+
     return `$${numPrice.toFixed(2)}`;
   };
+
+  const handleEditClick = (product: Product) => {
+    if (!product.id) {
+      console.error('Product ID missing:', product);
+      toast({
+        title: "Error",
+        description: "Cannot edit product - ID missing",
+        variant: "destructive",
+      });
+      return;
+    }
+    //setEditProduct(product);  //This line was not in the original code and the functionality is not defined
+  };
+
 
   return (
     <>
@@ -178,6 +214,7 @@ const ProductTable = ({ products }: ProductTableProps) => {
                             variant="ghost" 
                             size="sm" 
                             className="text-primary hover:text-blue-900 mr-3"
+                            onClick={() => handleEditClick(product)}
                           >
                             <Pencil className="h-4 w-4 mr-1" />
                             Edit

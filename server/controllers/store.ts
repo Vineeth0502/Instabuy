@@ -128,22 +128,23 @@ export function registerStoreRoutes(router: Router, storage: IStorage) {
   });
 
   // Get store by ID (for public view)
-  // router.get("/store/:id", async (req, res) => {
-  //   try {
-  //     const storeId = parseInt(req.params.id);
-  //     if (isNaN(storeId)) {
-  //       return res.status(400).json({ message: "Invalid store ID" });
-  //     }
-  //     const store = await storage.getStore(storeId);
-  //     if (!store) {
-  //       return res.status(404).json({ message: "Store not found" });
-  //     }
-  //     res.json(store);
-  //   } catch (error) {
-  //     console.error("Get store by ID error:", error);
-  //     res.status(500).json({ message: "Server error fetching store" });
-  //   }
-  // });
+  router.get("/stores/:id", async (req, res) => {
+    try {
+      const storeId = req.params.id;
+      if (!storeId || !/^[0-9a-fA-F]{24}$/.test(storeId)) {
+        return res.status(400).json({ message: "Invalid store ID format" });
+      }
+
+      const store = await storage.getStoreByStoreId(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      res.json(store);
+    } catch (error) {
+      console.error("Get store error:", error);
+      res.status(500).json({ message: "Server error fetching store" });
+    }
+  });
 
   // Get store info for multiple stores (used in product listing)
   router.get("/store/info", async (_req, res) => {
