@@ -1,0 +1,48 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Environment
+.env
+.env.* # ignore .env.local, .env.development, etc.
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Build outputs
+dist/
+build/
+out/
+coverage/
+.next/
+.svelte-kit/
+.vercel/
+.netlify/
+
+# TypeScript
+*.tsbuildinfo
+
+# React/Vite
+*.cache
+*.vite
+.vite/
+
+# Misc
+*.tgz
+*.bak
+*.tmp
+debug.log
