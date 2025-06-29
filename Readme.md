@@ -196,7 +196,6 @@ Instabuy/
 
 ## 🧑‍💻 Authors
 - Vineeth Ketham (Full Stack Developer)
-- [Include teammates if applicable]
 
 ---
 
